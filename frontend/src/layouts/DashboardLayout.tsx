@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Package,
   Boxes,
-  Briefcase
+  Briefcase,
+  UserPlus
 } from 'lucide-react';
 
 export const DashboardLayout: React.FC = () => {
@@ -86,6 +87,12 @@ export const DashboardLayout: React.FC = () => {
       title: 'FINANCE',
       items: [
         { label: 'Accounts', path: '/accounts', icon: <Briefcase size={18} />, roles: ['ADMIN', 'ACCOUNTS'] }
+      ]
+    },
+    {
+      title: 'ADMIN',
+      items: [
+        { label: 'Add Employee', path: '/register', icon: <UserPlus size={18} />, roles: ['ADMIN'] }
       ]
     }
   ];

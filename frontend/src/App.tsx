@@ -38,12 +38,12 @@ export const App: React.FC = () => {
           {/* Auth Layout Wrapper */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
           </Route>
 
           {/* Dashboard Layout Wrapper */}
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/register" element={<RoleRoute allowedRoles={['ADMIN']}><Register /></RoleRoute>} />
             
             {/* Customer subpages */}
             <Route path="/customers" element={<CustomerList />} />

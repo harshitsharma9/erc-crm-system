@@ -18,11 +18,6 @@ export class AuthService {
       throw new AppError('Email is already registered', 409);
     }
 
-    // Block self-registration as ADMIN
-    if (role === 'ADMIN') {
-      throw new AppError('Admin accounts cannot be created via registration', 403);
-    }
-
     // Hash the password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);

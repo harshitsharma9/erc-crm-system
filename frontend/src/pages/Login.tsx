@@ -15,9 +15,9 @@ const ROLES: { key: UserRole; label: string }[] = [
 export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('SALES');
+  const [email, setEmail] = useState('sales@company.com');
+  const [password, setPassword] = useState('Password123');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -106,11 +106,6 @@ export const Login: React.FC = () => {
           ? <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />Signing in…</span>
           : 'Sign In'}
       </button>
-
-      <p className="text-center text-[12.5px] text-zinc-500 mt-1">
-        Don't have an account?{' '}
-        <Link to="/register" className="text-primary hover:text-indigo-400 font-semibold transition-colors">Create account</Link>
-      </p>
     </form>
   );
 };
