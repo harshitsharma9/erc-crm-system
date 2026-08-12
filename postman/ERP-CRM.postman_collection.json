@@ -1,0 +1,119 @@
+{
+  "info": {
+    "_postman_id": "6a1a3b19-6826-4a13-a3a4-40b54d70d764",
+    "name": "ERP CRM API",
+    "description": "Demo flow: register/login, create a customer and product, add stock, create and confirm a challan, then verify insufficient-stock handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "salesToken", "value": "" },
+    { "key": "customerId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "categoryName", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "productSku", "value": "" },
+    { "key": "challanId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Login succeeds', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('token', pm.response.json().token);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"Password123\"\n}" }, "url": "{{baseUrl}}/api/auth/login" }
+        },
+        {
+          "name": "Invalid Login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid credentials return 401', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"email\": \"admin@company.com\", \"password\": \"not-the-password\" }" }, "url": "{{baseUrl}}/api/auth/login" }
+        },
+        {
+          "name": "Unauthorized API",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing token returns 401', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/customers" }
+        },
+        {
+          "name": "Login as Sales",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Sales login succeeds', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('salesToken', pm.response.json().token);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"email\": \"sales@company.com\", \"password\": \"Password123\" }" }, "url": "{{baseUrl}}/api/auth/login" }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        { "name": "Get Customers", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/customers" } },
+        {
+          "name": "Create Customer",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Customer is created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('customerId', pm.response.json().data.customer.id);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"customerName\": \"ABC Traders\",\n  \"mobile\": \"9876543210\",\n  \"businessName\": \"ABC Traders Pvt Ltd\",\n  \"customerType\": \"WHOLESALE\",\n  \"status\": \"ACTIVE\"\n}" }, "url": "{{baseUrl}}/api/customers" }
+        },
+        { "name": "Get Customer", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/customers/{{customerId}}" } },
+        { "name": "Update Customer", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"notes\": \"Priority wholesale customer\" }" }, "url": "{{baseUrl}}/api/customers/{{customerId}}" } },
+        { "name": "Add Follow-up", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"note\": \"Call to confirm delivery requirements\" }" }, "url": "{{baseUrl}}/api/customers/{{customerId}}/followups" } },
+        { "name": "Invalid Customer", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid customer request returns 400', () => pm.response.to.have.status(400));"] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"customerName\": \"X\", \"email\": \"not-an-email\" }" }, "url": "{{baseUrl}}/api/customers" } }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('categoryName', 'Demo Category ' + Date.now());"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Category is created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('categoryId', pm.response.json().data.category.id);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"name\": \"{{categoryName}}\" }" }, "url": "{{baseUrl}}/api/products/categories" }
+        },
+        { "name": "Get Products", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/products" } },
+        {
+          "name": "Create Product",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('productSku', 'MOUSE-DEMO-' + Date.now());"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Product is created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('productId', pm.response.json().data.product.id);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Wireless Mouse\",\n  \"sku\": \"{{productSku}}\",\n  \"unitPrice\": 400,\n  \"minimumStock\": 5,\n  \"categoryId\": \"{{categoryId}}\"\n}" }, "url": "{{baseUrl}}/api/products" }
+        },
+        { "name": "Update Product", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"warehouseLocation\": \"A-01\" }" }, "url": "{{baseUrl}}/api/products/{{productId}}" } },
+        { "name": "Invalid Product", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid product request returns 400', () => pm.response.to.have.status(400));"] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"name\": \"X\" }" }, "url": "{{baseUrl}}/api/products" } }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        { "name": "Stock IN (13 units)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"productId\": \"{{productId}}\", \"quantity\": 13, \"reason\": \"Demo opening stock\" }" }, "url": "{{baseUrl}}/api/stock/in" } },
+        { "name": "Stock OUT (5 units)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"productId\": \"{{productId}}\", \"quantity\": 5, \"reason\": \"Demo adjustment\" }" }, "url": "{{baseUrl}}/api/stock/out" } },
+        { "name": "Movement History", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/stock/movements/{{productId}}" } },
+        { "name": "Forbidden Stock IN (Sales)", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Sales stock write returns 403', () => pm.response.to.have.status(403));"] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{salesToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"productId\": \"{{productId}}\", \"quantity\": 1 }" }, "url": "{{baseUrl}}/api/stock/in" } }
+      ]
+    },
+    {
+      "name": "Customer Follow-ups",
+      "item": [
+        { "name": "Add Follow-up", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"note\": \"Call to confirm delivery requirements\" }" }, "url": "{{baseUrl}}/api/customers/{{customerId}}/followups" } },
+        { "name": "Get Follow-ups", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/customers/{{customerId}}/followups" } }
+      ]
+    },
+    {
+      "name": "Stock Movements",
+      "item": [
+        { "name": "Movement History", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/stock/movements/{{productId}}" } }
+      ]
+    },
+    {
+      "name": "Challans",
+      "item": [
+        {
+          "name": "Create",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Draft challan is created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('challanId', pm.response.json().data.challan.id);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"customerId\": \"{{customerId}}\", \"items\": [{ \"productId\": \"{{productId}}\", \"quantity\": 3 }] }" }, "url": "{{baseUrl}}/api/challans" }
+        },
+        { "name": "Get", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/challans/{{challanId}}" } },
+        { "name": "Confirm", "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Challan confirmation succeeds', () => pm.response.to.have.status(200));"] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/challans/{{challanId}}/confirm" } },
+        { "name": "Cancel", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/challans/{{challanId}}/cancel" } },
+        {
+          "name": "Confirm with insufficient stock (expects 400)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Oversized challan draft is created', () => pm.response.to.have.status(201));", "const id = pm.response.json().data.challan.id;", "pm.sendRequest({ url: pm.collectionVariables.get('baseUrl') + '/api/challans/' + id + '/confirm', method: 'POST', header: { Authorization: 'Bearer ' + pm.collectionVariables.get('token') } }, (error, response) => {", "  pm.test('Confirming 10 units with 5 remaining returns 400', () => { pm.expect(error).to.equal(null); pm.expect(response.code).to.equal(400); });", "  pm.test('Response explains insufficient stock', () => pm.expect(response.json().message).to.include('Insufficient stock'));", "});"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"customerId\": \"{{customerId}}\", \"items\": [{ \"productId\": \"{{productId}}\", \"quantity\": 10 }] }" }, "url": "{{baseUrl}}/api/challans" }
+        }
+      ]
+    }
+  ]
+}
